@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Squad SOL Pool</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: #0f1115;
+        --panel: #171a21;
+        --text: #f4f6fb;
+        --muted: #9aa3b5;
+        --line: #2a3140;
+        --accent: #b8f24a;
+        --accent-ink: #24310c;
+        --progress: #3d4a63;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family:
+          "Segoe UI",
+          "Helvetica Neue",
+          Helvetica,
+          Arial,
+          sans-serif;
+        background:
+          radial-gradient(circle at top left, #1d2433 0%, transparent 42%),
+          linear-gradient(180deg, #12151c 0%, var(--bg) 100%);
+        color: var(--text);
+      }
+
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 32px 24px 48px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 1.75rem;
+        letter-spacing: -0.03em;
+      }
+
+      .lede {
+        margin: 0 0 28px;
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .panel {
+        background: color-mix(in srgb, var(--panel) 92%, black);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 20px;
+        margin-bottom: 16px;
+      }
+
+      .label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin-bottom: 8px;
+      }
+
+      .target {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+
+      .target strong {
+        font-size: 1.5rem;
+      }
+
+      .bar {
+        height: 12px;
+        border-radius: 999px;
+        background: var(--progress);
+        overflow: hidden;
+      }
+
+      .bar > span {
+        display: block;
+        width: 64%;
+        height: 100%;
+        background: linear-gradient(90deg, #8fd12f, var(--accent));
+      }
+
+      .meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 10px;
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: grid;
+        gap: 10px;
+      }
+
+      li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      button {
+        width: 100%;
+        margin-top: 8px;
+        border: 0;
+        border-radius: 999px;
+        padding: 14px 18px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        background: var(--accent);
+        color: var(--accent-ink);
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .note {
+        margin-top: 14px;
+        font-size: 0.85rem;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Squad SOL Pool</h1>
+      <p class="lede">
+        A collaborative Solana contribution challenge. Friends pool SOL toward a
+        shared goal.
+      </p>
+
+      <section class="panel" aria-label="Contribution progress">
+        <div class="label">Contribution target</div>
+        <div class="target">
+          <strong>5.00 SOL</strong>
+          <span>64% funded</span>
+        </div>
+        <div class="bar" aria-hidden="true"><span></span></div>
+        <div class="meta">
+          <span>Raised: 3.20 SOL</span>
+          <span>Remaining: 1.80 SOL</span>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="Participants">
+        <div class="label">Participants</div>
+        <ul>
+          <li><span>Maya Chen</span><span>1.20 SOL</span></li>
+          <li><span>Jordan Lee</span><span>0.80 SOL</span></li>
+          <li><span>Priya Shah</span><span>0.70 SOL</span></li>
+          <li><span>Alex Kim</span><span>0.50 SOL</span></li>
+        </ul>
+      </section>
+
+      <button type="button" disabled>Contribute</button>
+      <p class="note">
+        Wallet integration comes in a later SolBuilder phase. This demo app is
+        static and does not talk to Phantom or the Builder host yet.
+      </p>
+    </main>
+  </body>
+</html>
