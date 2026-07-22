@@ -4,14 +4,27 @@ SolBuilder is an AI builder for collaborative Solana apps. Browse app spaces, ch
 
 ## Current status
 
-**Auth + generation backend foundation** is in place.
+**End-to-end demo**: messenger UI wired to the live Convex backend.
 
 - Clerk sign-in + ConvexProviderWithClerk
-- Convex Agent threads (one per app)
-- Convex Workflow for durable app generation
-- Schema: `apps`, `appMembers`, `generationJobs`
-- Typed adapters for GitHub, Convex Platform, Vercel, Cursor
-- Frontend screens may still use mock data until wired to these functions
+- Apps list, group chat, and generated-app preview backed by real Convex data
+- Plain chat messages persist to the app's Agent thread
+- Messages mentioning `@cursor` start the durable generation workflow
+- Workflow provisions GitHub repo → Convex project → Vercel project → runs a
+  Cursor background agent → waits for deploys → posts the preview URL in chat
+- Generation progress and failures render in the chat with a Retry action
+- Phantom wallet connection owned by the host; generated apps request SOL
+  transfers through the typed iframe bridge (devnet, capped, no arbitrary signing)
+
+## Demo flow
+
+1. Sign in with Clerk, connect Phantom (devnet).
+2. Tap **+** to create an app, open its group chat.
+3. Chat normally, or send a message mentioning `@cursor` to build/update the app.
+4. Watch progress messages; when generation completes the deployed URL is
+   posted in chat and **Open app** shows the live app in the iframe.
+5. The generated app receives user/members/wallet context via the bridge and
+   can request a SOL transfer, approved in the host.
 
 ## Architecture overview
 
