@@ -2,6 +2,9 @@
 
 interface ImportMetaEnv {
   readonly VITE_GENERATED_APP_URL?: string
+  readonly VITE_CLERK_PUBLISHABLE_KEY: string
+  readonly VITE_CONVEX_URL: string
+  readonly VITE_CONVEX_SITE_URL?: string
 }
 
 interface ImportMeta {

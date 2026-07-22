@@ -3,18 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Squad SOL Pool</title>
+    <title>Squad Pool</title>
     <style>
       :root {
-        color-scheme: light dark;
-        --bg: #0f1115;
-        --panel: #171a21;
-        --text: #f4f6fb;
-        --muted: #9aa3b5;
-        --line: #2a3140;
-        --accent: #b8f24a;
-        --accent-ink: #24310c;
-        --progress: #3d4a63;
+        color-scheme: light;
+        --bg: #f7f7f8;
+        --surface: #ffffff;
+        --text: #111113;
+        --muted: #6b6f76;
+        --line: #e7e8ea;
+        --accent: #b6f255;
+        --accent-ink: #1f2a0a;
+        --track: #ececef;
       }
 
       * {
@@ -23,113 +23,151 @@
 
       body {
         margin: 0;
-        min-height: 100vh;
+        min-height: 100%;
         font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
           "Segoe UI",
-          "Helvetica Neue",
-          Helvetica,
-          Arial,
           sans-serif;
-        background:
-          radial-gradient(circle at top left, #1d2433 0%, transparent 42%),
-          linear-gradient(180deg, #12151c 0%, var(--bg) 100%);
+        background: var(--bg);
         color: var(--text);
       }
 
       main {
-        max-width: 720px;
+        max-width: 420px;
         margin: 0 auto;
-        padding: 32px 24px 48px;
+        padding: 16px 14px 24px;
       }
 
-      h1 {
-        margin: 0 0 8px;
-        font-size: 1.75rem;
-        letter-spacing: -0.03em;
-      }
-
-      .lede {
-        margin: 0 0 28px;
-        color: var(--muted);
-        line-height: 1.5;
-      }
-
-      .panel {
-        background: color-mix(in srgb, var(--panel) 92%, black);
-        border: 1px solid var(--line);
-        border-radius: 18px;
-        padding: 20px;
+      header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
         margin-bottom: 16px;
       }
 
-      .label {
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--muted);
-        margin-bottom: 8px;
+      .title {
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
       }
 
-      .target {
+      .avatars {
+        display: flex;
+      }
+
+      .avatars span {
+        display: grid;
+        place-items: center;
+        width: 24px;
+        height: 24px;
+        margin-left: -6px;
+        border-radius: 999px;
+        border: 2px solid var(--bg);
+        background: #dfe3ea;
+        color: #3d4450;
+        font-size: 9px;
+        font-weight: 600;
+      }
+
+      .avatars span:first-child {
+        margin-left: 0;
+        background: #c9f07d;
+        color: var(--accent-ink);
+      }
+
+      .section {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 10px;
+      }
+
+      .progress-top {
         display: flex;
         justify-content: space-between;
         align-items: baseline;
-        gap: 12px;
-        margin-bottom: 14px;
+        gap: 8px;
+        margin-bottom: 10px;
       }
 
-      .target strong {
-        font-size: 1.5rem;
+      .progress-top strong {
+        font-size: 18px;
+        letter-spacing: -0.03em;
+      }
+
+      .progress-top span {
+        font-size: 12px;
+        color: var(--muted);
       }
 
       .bar {
-        height: 12px;
+        height: 8px;
         border-radius: 999px;
-        background: var(--progress);
+        background: var(--track);
         overflow: hidden;
       }
 
-      .bar > span {
+      .bar > i {
         display: block;
         width: 64%;
         height: 100%;
-        background: linear-gradient(90deg, #8fd12f, var(--accent));
+        background: var(--accent);
       }
 
       .meta {
         display: flex;
         justify-content: space-between;
-        gap: 12px;
-        margin-top: 10px;
-        color: var(--muted);
-        font-size: 0.9rem;
-      }
-
-      ul {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: grid;
-        gap: 10px;
-      }
-
-      li {
-        display: flex;
-        justify-content: space-between;
-        gap: 12px;
-        padding: 10px 12px;
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        background: rgba(255, 255, 255, 0.02);
-      }
-
-      button {
-        width: 100%;
         margin-top: 8px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        color: var(--muted);
+      }
+
+      .input-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 0 10px;
+        background: #fafafa;
+      }
+
+      .input-row span {
+        font-size: 13px;
+        color: var(--muted);
+      }
+
+      input {
+        width: 100%;
         border: 0;
-        border-radius: 999px;
-        padding: 14px 18px;
-        font-size: 0.95rem;
+        outline: 0;
+        background: transparent;
+        padding: 10px 0;
+        font: inherit;
+        font-size: 14px;
+        color: var(--text);
+      }
+
+      button.primary {
+        width: 100%;
+        margin-top: 10px;
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 12px;
+        font: inherit;
+        font-size: 13px;
         font-weight: 600;
         background: var(--accent);
         color: var(--accent-ink);
@@ -137,50 +175,82 @@
         cursor: not-allowed;
       }
 
-      .note {
-        margin-top: 14px;
-        font-size: 0.85rem;
-        line-height: 1.5;
+      .list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 0;
+        font-size: 13px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .list li:last-child {
+        border-bottom: 0;
+        padding-bottom: 0;
+      }
+
+      .list li span:last-child {
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .demo {
+        margin-top: 12px;
+        text-align: center;
+        font-size: 11px;
         color: var(--muted);
       }
     </style>
   </head>
   <body>
     <main>
-      <h1>Squad SOL Pool</h1>
-      <p class="lede">
-        A collaborative Solana contribution challenge. Friends pool SOL toward a
-        shared goal.
-      </p>
-
-      <section class="panel" aria-label="Contribution progress">
-        <div class="label">Contribution target</div>
-        <div class="target">
-          <strong>5.00 SOL</strong>
-          <span>64% funded</span>
+      <header>
+        <div class="title">Squad Pool</div>
+        <div class="avatars" aria-label="Participants">
+          <span>MC</span>
+          <span>JL</span>
+          <span>PS</span>
+          <span>AK</span>
         </div>
-        <div class="bar" aria-hidden="true"><span></span></div>
+      </header>
+
+      <section class="section" aria-label="Funding progress">
+        <div class="progress-top">
+          <strong>3.20 / 5 SOL</strong>
+          <span>64%</span>
+        </div>
+        <div class="bar" aria-hidden="true"><i></i></div>
         <div class="meta">
-          <span>Raised: 3.20 SOL</span>
-          <span>Remaining: 1.80 SOL</span>
+          <span>Goal trip fund</span>
+          <span>1.80 left</span>
         </div>
       </section>
 
-      <section class="panel" aria-label="Participants">
-        <div class="label">Participants</div>
-        <ul>
-          <li><span>Maya Chen</span><span>1.20 SOL</span></li>
-          <li><span>Jordan Lee</span><span>0.80 SOL</span></li>
-          <li><span>Priya Shah</span><span>0.70 SOL</span></li>
-          <li><span>Alex Kim</span><span>0.50 SOL</span></li>
+      <section class="section" aria-label="Contribute">
+        <label for="amount">Amount</label>
+        <div class="input-row">
+          <span>SOL</span>
+          <input id="amount" type="text" value="0.5" disabled />
+        </div>
+        <button class="primary" type="button" disabled>Contribute</button>
+      </section>
+
+      <section class="section" aria-label="Recent contributions">
+        <ul class="list">
+          <li><span>Maya</span><span>1.20 SOL</span></li>
+          <li><span>Jordan</span><span>0.80 SOL</span></li>
+          <li><span>Priya</span><span>0.70 SOL</span></li>
+          <li><span>Alex</span><span>0.50 SOL</span></li>
         </ul>
       </section>
 
-      <button type="button" disabled>Contribute</button>
-      <p class="note">
-        Wallet integration comes in a later SolBuilder phase. This demo app is
-        static and does not talk to Phantom or the Builder host yet.
-      </p>
+      <p class="demo">Demo mode · wallet not connected</p>
     </main>
   </body>
 </html>

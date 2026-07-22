@@ -2,20 +2,18 @@
 
 ## Product purpose
 
-SolBuilder is an AI builder for collaborative Solana apps. Creators chat with the Builder to generate and iterate on apps that receive identity and wallet capabilities from the Builder host — never by integrating auth or wallets themselves.
+SolBuilder is an AI builder for collaborative Solana apps. Creators chat in group threads to shape apps, then open the generated app in a full-screen preview. The Builder hosts auth and wallet access later — generated apps never integrate those themselves.
 
 ## Current active phase
 
-**Phase 1 — Builder shell (completed)**
+**Phase 1 shell + auth wiring (in progress toward Phase 6)**
 
-Working desktop Builder UI with apps sidebar, chat panel, iframe preview, project top bar, mock data, and a static local demo app loaded in the iframe.
-
-Do **not** implement future phases unless explicitly requested.
+Mobile three-screen host with Clerk sign-in and ConvexProviderWithClerk. Apps/messages remain mocked. Do **not** implement future phases unless explicitly requested.
 
 ## Complete roadmap
 
 1. **Phase 1 — Builder shell**  
-   Apps sidebar, chat panel, iframe preview, top bar, mock data, static demo app. No external integrations.
+   Mobile messenger shell: apps list, group chat, generated-app iframe. Mock data only. Preview URL via `VITE_GENERATED_APP_URL`.
 
 2. **Phase 2 — Host bridge**  
    Typed `postMessage` communication between the Builder and generated apps (current user, wallet address, members, supported host actions).
@@ -77,7 +75,7 @@ Do not implement that API until the relevant phase is requested.
 - Preserve the selected shadcn preset (colors, fonts, radius, icon library, CSS variables, dark theme).
 - Do not redesign the theme.
 - Avoid unnecessary custom CSS.
-- Desktop-first only; no mobile navigation yet.
+- Mobile-first single layout; desktop uses a centered max-width container.
 - Do not introduce a backend until the persistence phase.
 - Do not implement fake blockchain logic.
 - Every phase must end with a working build and a clean commit.
