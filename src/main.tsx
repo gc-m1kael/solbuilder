@@ -1,3 +1,4 @@
+import { Buffer } from "buffer"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
 import { ClerkProvider, useAuth } from "@clerk/react"
@@ -7,6 +8,9 @@ import { ConvexReactClient } from "convex/react"
 import "./index.css"
 import App from "./App.tsx"
 import { ThemeProvider } from "@/components/theme-provider.tsx"
+import { SolanaWalletProvider } from "@/components/wallet/solana-wallet-provider.tsx"
+
+;(globalThis as typeof globalThis & { Buffer: typeof Buffer }).Buffer = Buffer
 
 const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 const CONVEX_URL = import.meta.env.VITE_CONVEX_URL
@@ -26,7 +30,9 @@ createRoot(document.getElementById("root")!).render(
     <ThemeProvider>
       <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
         <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-          <App />
+          <SolanaWalletProvider>
+            <App />
+          </SolanaWalletProvider>
         </ConvexProviderWithClerk>
       </ClerkProvider>
     </ThemeProvider>

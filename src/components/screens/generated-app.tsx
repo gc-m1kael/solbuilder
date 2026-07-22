@@ -3,7 +3,6 @@ import {
   RiArrowLeftLine,
   RiExternalLinkLine,
   RiRefreshLine,
-  RiWalletLine,
 } from "@remixicon/react"
 
 import { Button } from "@/components/ui/button"
@@ -12,6 +11,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { WalletButton } from "@/components/wallet/wallet-button"
 import type { MockApp } from "@/data/mock"
 import { getPreviewUrl } from "@/lib/preview-url"
 
@@ -77,22 +77,7 @@ export function GeneratedAppScreen({ app, onBack }: GeneratedAppScreenProps) {
           <TooltipContent>Open in new tab</TooltipContent>
         </Tooltip>
 
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button
-                variant="outline"
-                size="sm"
-                disabled
-                className="h-7 rounded-md px-2 text-xs"
-              >
-                <RiWalletLine className="size-3.5" />
-                Wallet
-              </Button>
-            }
-          />
-          <TooltipContent>Wallet connection lands later</TooltipContent>
-        </Tooltip>
+        <WalletButton />
       </header>
 
       <div className="min-h-0 flex-1 bg-muted/20">
