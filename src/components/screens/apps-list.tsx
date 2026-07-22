@@ -9,12 +9,14 @@ import type { MockApp } from "@/data/mock"
 type AppsListScreenProps = {
   apps: MockApp[]
   onOpenApp: (appId: string) => void
+  walletSlot: ReactNode
   userSlot: ReactNode
 }
 
 export function AppsListScreen({
   apps,
   onOpenApp,
+  walletSlot,
   userSlot,
 }: AppsListScreenProps) {
   return (
@@ -31,7 +33,12 @@ export function AppsListScreen({
         >
           <RiAddLine />
         </Button>
-        <div className="flex size-8 items-center justify-center">{userSlot}</div>
+        <div className="flex items-center gap-1.5">
+          {walletSlot}
+          <div className="flex size-8 items-center justify-center">
+            {userSlot}
+          </div>
+        </div>
       </header>
 
       <ScrollArea className="min-h-0 flex-1">

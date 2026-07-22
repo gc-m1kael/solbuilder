@@ -13,8 +13,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { WalletButton } from "@/components/wallet/wallet-button"
-import { useHostBridge } from "@/hooks/use-host-bridge"
+import {
+  useHostBridge,
+  type HostTransferUiStatus,
+} from "@/hooks/use-host-bridge"
 import type { MockApp, MockMember } from "@/data/mock"
 import { getPreviewUrl } from "@/lib/preview-url"
 import { cn } from "@/lib/utils"
@@ -55,6 +57,54 @@ function BridgeStatusBadge({
   )
 }
 
+function TransferStatusBadge({ status }: { status: HostTransferUiStatus }) {
+  if (status.state === "idle") {
+    return null
+  }
+
+  if (status.state === "pending") {
+    return (
+      <span
+        className="truncate text-[11px] text-muted-foreground"
+        title={`Confirm ${status.amountSol} SOL transfer in Phantom`}
+      >
+        pending {status.amountSol} SOL…
+      </span>
+    )
+  }
+
+  if (status.state === "success") {
+    return (
+      <span
+        className="truncate text-[11px] text-primary"
+        title={status.signature}
+      >
+        sent {status.amountSol} SOL
+      </span>
+    )
+  }
+
+  if (status.state === "cancelled") {
+    return (
+      <span
+        className="truncate text-[11px] text-muted-foreground"
+        title={status.error}
+      >
+        {status.error || "cancelled"}
+      </span>
+    )
+  }
+
+  return (
+    <span
+      className="truncate text-[11px] text-destructive"
+      title={status.error}
+    >
+      {status.error || "transfer error"}
+    </span>
+  )
+}
+
 export function GeneratedAppScreen({
   app,
   members,
@@ -83,7 +133,7 @@ export function GeneratedAppScreen({
 
   const walletAddress = publicKey?.toBase58() ?? null
 
-  const { status: bridgeStatus } = useHostBridge({
+  const { status: bridgeStatus, transferStatus } = useHostBridge({
     iframeRef,
     appId: app.id,
     user: bridgeUser,
@@ -109,6 +159,7 @@ export function GeneratedAppScreen({
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <div className="truncate text-[14px] font-medium">{app.name}</div>
           <BridgeStatusBadge status={bridgeStatus} />
+          <TransferStatusBadge status={transferStatus} />
         </div>
 
         <Tooltip>
@@ -146,8 +197,6 @@ export function GeneratedAppScreen({
           />
           <TooltipContent>Open in new tab</TooltipContent>
         </Tooltip>
-
-        <WalletButton />
       </header>
 
       <div className="min-h-0 flex-1 bg-muted/20">

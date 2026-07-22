@@ -72,7 +72,7 @@ export function WalletButton() {
     ? shortenAddress(publicKey.toBase58())
     : connecting || pendingConnect
       ? "Connecting…"
-      : "Wallet"
+      : "Connect"
 
   const tooltip = connected
     ? "Disconnect Phantom"

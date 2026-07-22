@@ -7,6 +7,7 @@ import { AppsListScreen } from "@/components/screens/apps-list"
 import { GeneratedAppScreen } from "@/components/screens/generated-app"
 import { GroupChatScreen } from "@/components/screens/group-chat"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { WalletButton } from "@/components/wallet/wallet-button"
 import { api } from "../convex/_generated/api"
 import {
   mockApps,
@@ -89,6 +90,7 @@ function AuthenticatedApp() {
         <AppsListScreen
           apps={mockApps}
           onOpenApp={handleOpenApp}
+          walletSlot={<WalletButton />}
           userSlot={<UserButton />}
         />
       ) : null}

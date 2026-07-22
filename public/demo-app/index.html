@@ -236,9 +236,11 @@
         <label for="amount">Amount</label>
         <div class="input-row">
           <span>SOL</span>
-          <input id="amount" type="text" value="0.5" disabled />
+          <input id="amount" type="text" value="0.01" />
         </div>
-        <button class="primary" type="button" disabled>Contribute</button>
+        <button class="primary" id="contribute" type="button" disabled>
+          Contribute
+        </button>
       </section>
 
       <section class="section" aria-label="Recent contributions">
@@ -251,18 +253,47 @@
       </section>
 
       <p class="demo" id="bridge-status">Demo mode · waiting for host…</p>
+      <p class="demo" id="transfer-status"></p>
     </main>
     <script>
       ;(function () {
         var statusEl = document.getElementById("bridge-status")
+        var transferEl = document.getElementById("transfer-status")
+        var amountInput = document.getElementById("amount")
+        var contributeBtn = document.getElementById("contribute")
         var hostOrigin = document.referrer
           ? new URL(document.referrer).origin
           : window.location.origin
+        var latestContext = null
+        // Fixed demo recipient (valid base58 pubkey) for host transfer tests
+        var DEMO_RECIPIENT = "F72PhG2JuqZqB1FA96QotGcRN2XHCmyQzhksv57gJRE5"
 
         function setStatus(text) {
           if (statusEl) {
             statusEl.textContent = text
           }
+        }
+
+        function setTransferStatus(text) {
+          if (transferEl) {
+            transferEl.textContent = text || ""
+          }
+        }
+
+        function updateContributeEnabled() {
+          var walletConnected = !!(
+            latestContext && latestContext.walletAddress
+          )
+          contributeBtn.disabled = !walletConnected
+        }
+
+        function randomRequestId() {
+          return (
+            "req_" +
+            Date.now().toString(36) +
+            "_" +
+            Math.random().toString(36).slice(2, 8)
+          )
         }
 
         window.addEventListener("message", function (event) {
@@ -271,26 +302,75 @@
           }
 
           var data = event.data
-          if (!data || data.type !== "SOLBUILDER_CONTEXT") {
+          if (!data || typeof data !== "object") {
             return
           }
 
-          var payload = data.payload || {}
-          var user = payload.user || {}
-          var wallet = payload.walletAddress
-          var members = Array.isArray(payload.members) ? payload.members : []
-          var walletLabel = wallet
-            ? wallet.slice(0, 4) + "…" + wallet.slice(-4)
-            : "wallet not connected"
+          if (data.type === "SOLBUILDER_CONTEXT") {
+            latestContext = data.payload || {}
+            var user = latestContext.user || {}
+            var wallet = latestContext.walletAddress
+            var members = Array.isArray(latestContext.members)
+              ? latestContext.members
+              : []
+            var walletLabel = wallet
+              ? wallet.slice(0, 4) + "…" + wallet.slice(-4)
+              : "wallet not connected"
 
-          setStatus(
-            "Host connected · " +
-              (user.name || "user") +
-              " · " +
-              walletLabel +
-              " · " +
-              members.length +
-              " members"
+            setStatus(
+              "Host connected · " +
+                (user.name || "user") +
+                " · " +
+                walletLabel +
+                " · " +
+                members.length +
+                " members"
+            )
+            updateContributeEnabled()
+            return
+          }
+
+          if (data.type === "SOLBUILDER_SOL_TRANSFER_RESULT") {
+            var result = data.payload || {}
+            if (result.status === "success") {
+              setTransferStatus(
+                "Transfer success · " + (result.signature || "").slice(0, 12) + "…"
+              )
+            } else if (result.status === "cancelled") {
+              setTransferStatus(
+                "Transfer cancelled · " + (result.error || "user cancelled")
+              )
+            } else {
+              setTransferStatus(
+                "Transfer error · " + (result.error || "unknown error")
+              )
+            }
+            contributeBtn.disabled = !(
+              latestContext && latestContext.walletAddress
+            )
+          }
+        })
+
+        contributeBtn.addEventListener("click", function () {
+          if (!window.parent || window.parent === window) {
+            return
+          }
+
+          var amountSol = Number(amountInput.value)
+          var requestId = randomRequestId()
+          contributeBtn.disabled = true
+          setTransferStatus("Requesting " + amountSol + " SOL…")
+
+          window.parent.postMessage(
+            {
+              type: "SOLBUILDER_SOL_TRANSFER_REQUEST",
+              payload: {
+                requestId: requestId,
+                recipient: DEMO_RECIPIENT,
+                amountSol: amountSol,
+              },
+            },
+            hostOrigin
           )
         })
 
