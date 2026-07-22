@@ -41,17 +41,28 @@ export const ensureGithubRepo = internalAction({
       githubDefaultBranch: repo.defaultBranch,
     })
 
-    // Wait briefly for GitHub to materialize the default branch.
-    for (let attempt = 0; attempt < 8; attempt++) {
+    // Wait for GitHub to materialize the default branch (template copy is
+    // async). Fail loudly if it never appears so we don't hand Cursor an
+    // empty repository.
+    let branchReady = false
+    let lastBranchError: string | undefined
+    for (let attempt = 0; attempt < 12; attempt++) {
       try {
         await github.getHeadSha({
           fullName: repo.fullName,
           branch: repo.defaultBranch,
         })
+        branchReady = true
         break
-      } catch {
-        await new Promise((r) => setTimeout(r, 500 * (attempt + 1)))
+      } catch (err) {
+        lastBranchError = err instanceof Error ? err.message : String(err)
+        await new Promise((r) => setTimeout(r, 1000 * (attempt + 1)))
       }
+    }
+    if (!branchReady) {
+      throw new Error(
+        `Branch ${repo.defaultBranch} never materialized in ${repo.fullName}: ${lastBranchError}`
+      )
     }
 
     return {

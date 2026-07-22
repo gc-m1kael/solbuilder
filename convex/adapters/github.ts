@@ -1,8 +1,94 @@
+"use node"
+
+import { createSign } from "crypto"
 import { assertNotStub, optionalEnv, requireEnv } from "../lib/env"
 import { randomSuffix, withSuffix } from "../lib/slugify"
 
 const GITHUB_API = "https://api.github.com"
 const API_VERSION = "2022-11-28"
+
+// --- GitHub App installation auth (preferred when configured) ---
+// Repos must be created via the GitHub App installation so the Cursor
+// integration (connected to the same installation's org) can access them.
+
+let cachedInstallationToken: { token: string; expiresAtMs: number } | null =
+  null
+
+function createAppJwt(appId: string, privateKeyPem: string): string {
+  const b64url = (input: string | Buffer) =>
+    Buffer.from(input).toString("base64url")
+  const now = Math.floor(Date.now() / 1000)
+  const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }))
+  const payload = b64url(
+    JSON.stringify({ iat: now - 60, exp: now + 9 * 60, iss: appId })
+  )
+  const signer = createSign("RSA-SHA256")
+  signer.update(`${header}.${payload}`)
+  const signature = signer.sign(privateKeyPem).toString("base64url")
+  return `${header}.${payload}.${signature}`
+}
+
+async function getInstallationToken(): Promise<string | null> {
+  const appId = optionalEnv("GITHUB_APP_ID")
+  const installationId = optionalEnv("GITHUB_APP_INSTALLATION_ID")
+  const privateKeyB64 = optionalEnv("GITHUB_APP_PRIVATE_KEY_B64")
+  if (!appId || !installationId || !privateKeyB64) {
+    return null
+  }
+
+  if (
+    cachedInstallationToken &&
+    cachedInstallationToken.expiresAtMs - Date.now() > 60_000
+  ) {
+    return cachedInstallationToken.token
+  }
+
+  const pem = Buffer.from(privateKeyB64, "base64")
+    .toString("utf8")
+    .replace(/\\n/g, "\n")
+  const jwt = createAppJwt(appId, pem)
+  const res = await fetch(
+    `${GITHUB_API}/app/installations/${installationId}/access_tokens`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+        Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": API_VERSION,
+      },
+      body: JSON.stringify({
+        permissions: {
+          administration: "write",
+          contents: "write",
+          pull_requests: "write",
+        },
+      }),
+    }
+  )
+  if (!res.ok) {
+    const text = await res.text().catch(() => "")
+    throw new Error(
+      `GitHub App installation token failed (${res.status}): ${text}`
+    )
+  }
+  const data = (await res.json()) as { token?: string; expires_at?: string }
+  if (!data.token || !data.expires_at) {
+    throw new Error("GitHub App installation token response missing token")
+  }
+  cachedInstallationToken = {
+    token: data.token,
+    expiresAtMs: new Date(data.expires_at).getTime(),
+  }
+  return data.token
+}
+
+async function getGithubToken(): Promise<string> {
+  const installationToken = await getInstallationToken()
+  if (installationToken) {
+    return installationToken
+  }
+  return requireEnv("GITHUB_TOKEN")
+}
 
 export type GithubRepoInfo = {
   repositoryUrl: string
@@ -40,7 +126,6 @@ function parseOwnerRepo(input: string): { owner: string; repo: string } {
 
 export function getGithubConfig() {
   return {
-    token: requireEnv("GITHUB_TOKEN"),
     owner: requireEnv("GITHUB_OWNER"),
     starterRepo:
       optionalEnv("GITHUB_STARTER_REPO") ?? "gc-m1kael/solbuilder-app-starter",
@@ -49,7 +134,7 @@ export function getGithubConfig() {
 
 export async function getRepoByFullName(fullName: string): Promise<GithubRepoInfo | null> {
   assertNotStub("GitHub")
-  const { token } = getGithubConfig()
+  const token = await getGithubToken()
   const res = await fetch(`${GITHUB_API}/repos/${fullName}`, {
     headers: githubHeaders(token),
   })
@@ -84,7 +169,8 @@ export async function ensureRepoFromStarter(args: {
   privateRepo?: boolean
 }): Promise<GithubRepoInfo> {
   assertNotStub("GitHub")
-  const { token, owner, starterRepo } = getGithubConfig()
+  const { owner, starterRepo } = getGithubConfig()
+  const token = await getGithubToken()
 
   if (args.existingFullName) {
     const existing = await getRepoByFullName(args.existingFullName)
@@ -151,7 +237,7 @@ export async function getHeadSha(args: {
   branch: string
 }): Promise<string> {
   assertNotStub("GitHub")
-  const { token } = getGithubConfig()
+  const token = await getGithubToken()
   const res = await fetch(
     `${GITHUB_API}/repos/${args.fullName}/commits/${encodeURIComponent(args.branch)}`,
     { headers: githubHeaders(token) }
