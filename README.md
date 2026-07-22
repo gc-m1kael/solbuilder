@@ -4,14 +4,14 @@ SolBuilder is an AI builder for collaborative Solana apps. Browse app spaces, ch
 
 ## Current status
 
-**Phase 1 mobile messenger + Clerk/Convex auth** is implemented.
+**Auth + generation backend foundation** is in place.
 
-- Three screens: apps list → group chat → generated app
-- Clerk sign-in when signed out; three-screen UI when signed in
-- ConvexProviderWithClerk + minimal `auth.currentUser` query
-- Apps/messages still mocked (no full DB schema yet)
-- Generated app iframe via `VITE_GENERATED_APP_URL`
-- No Phantom / iframe bridge yet
+- Clerk sign-in + ConvexProviderWithClerk
+- Convex Agent threads (one per app)
+- Convex Workflow for durable app generation
+- Schema: `apps`, `appMembers`, `generationJobs`
+- Typed adapters for GitHub, Convex Platform, Vercel, Cursor
+- Frontend screens may still use mock data until wired to these functions
 
 ## Architecture overview
 
@@ -20,25 +20,51 @@ ClerkProvider
 └── ConvexProviderWithClerk
     ├── Unauthenticated → Clerk <SignIn />
     └── Authenticated → Apps list / Group chat / Generated app
+            │
+            └── Convex backend
+                ├── Agent thread per app
+                └── generateAppWorkflow
+                    ├── GitHub starter repo
+                    ├── Convex generated-app project
+                    ├── Vercel project + env
+                    ├── Cursor Background Agent
+                    └── Deploy wait + final URLs
 ```
 
-## Roadmap
+## Public Convex functions (frontend)
 
-1. Builder shell (current)
-2. Host bridge (`postMessage`)
-3. Solana wallet bridge (Phantom via Builder, SOL transfers on devnet)
-4. Cursor app updates
-5. Persistence (Convex)
-6. Authentication (Clerk)
-7. Provisioning (optional)
+| Function | Purpose |
+|---|---|
+| `apps.createApp` | Create app + owner membership |
+| `apps.listApps` | List apps for the signed-in user |
+| `apps.getApp` | Get one app (member-only) |
+| `threads.getOrCreateAppThread` | Ensure Agent thread for an app |
+| `threads.listAppMessages` | Paginated Agent UI messages |
+| `generation.sendAppMessage` | Save prompt, start workflow, return job/workflow ids |
+| `generation.getGenerationStatus` | Latest (or specific) job status |
+| `generation.retryGeneration` | Retry a failed job (reuses infra IDs) |
+
+## Backend environment variables
+
+Set on the Convex deployment (`npx convex env set ...`):
+
+- `CLERK_JWT_ISSUER_DOMAIN`
+- `GITHUB_TOKEN`, `GITHUB_OWNER`, `GITHUB_STARTER_REPO`
+- `VERCEL_TOKEN`, `VERCEL_TEAM_ID`
+- `CONVEX_TEAM_TOKEN`, `CONVEX_TEAM_ID` (optional `CONVEX_TEAM_SLUG` label)
+- `CURSOR_API_KEY`, optional `CURSOR_WEBHOOK_SECRET`
+- `CONVEX_SITE_URL` (webhook + host URL for generated apps)
+- Optional `SOLBUILDER_ADAPTER_MODE=stub` to refuse provisioning clearly
+
+Vite client vars remain in `.env` / `.env.example` (`VITE_*`).
 
 ## Local development
 
 ```bash
 pnpm install
 cp .env.example .env
-# optional: set VITE_GENERATED_APP_URL=https://your-app.example
-pnpm dev
+pnpm dev:convex   # codegen + Convex backend
+pnpm dev          # Vite UI
 ```
 
 Production build:
@@ -53,3 +79,4 @@ pnpm preview
 - Scaffolded with `pnpm dlx shadcn@latest init --preset b6Z8DTUBu --template vite`
 - Mobile-first single layout; desktop centers a max-width shell
 - See `AGENTS.md` for agent-facing product and phase rules
+- Generation adapters call real APIs when credentials are set; missing credentials fail clearly (no fake success)

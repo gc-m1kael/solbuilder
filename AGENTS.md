@@ -6,9 +6,9 @@ SolBuilder is an AI builder for collaborative Solana apps. Creators chat in grou
 
 ## Current active phase
 
-**Phase 1 shell + auth wiring (in progress toward Phase 6)**
+**AI app-generation backend foundation (Convex Agent + Workflow)**
 
-Mobile three-screen host with Clerk sign-in and ConvexProviderWithClerk. Apps/messages remain mocked. Do **not** implement future phases unless explicitly requested.
+Backend can create apps, Agent threads, generation jobs, and run the durable provisioning/Cursor workflow. Frontend may still use mocks until wired. Do **not** implement unrelated future UI work unless explicitly requested.
 
 ## Complete roadmap
 
@@ -30,10 +30,22 @@ Mobile three-screen host with Clerk sign-in and ConvexProviderWithClerk. Apps/me
 6. **Phase 6 — Authentication**  
    Clerk auth and membership handling owned by the Builder.
 
-7. **Phase 7 — Provisioning (optional)**  
+7. **Phase 7 — Provisioning**  
    Automate GitHub repo creation, starter push, Vercel project, env vars, deployment, and Convex project creation.
 
-## Architecture boundaries
+## Generation backend (implemented)
+
+- One Convex Agent thread per app (`apps.threadId`)
+- Durable Convex Workflow orchestrates provisioning + Cursor + deploy waits
+- Tables: `apps`, `appMembers`, `generationJobs`
+- Public functions: `apps.createApp`, `apps.listApps`, `apps.getApp`, `threads.getOrCreateAppThread`, `threads.listAppMessages`, `generation.sendAppMessage`, `generation.getGenerationStatus`, `generation.retryGeneration`
+- External adapters: GitHub, Convex Platform, Vercel, Cursor
+
+### Workflow states
+
+`queued` → `preparing_repository` → `creating_convex` → `creating_vercel` → `configuring_environment` → `starting_cursor` → `cursor_running` → `deploying_convex` → `deploying_vercel` → `completed` | `failed`
+
+### Architecture boundaries
 
 ### The Builder owns
 
@@ -52,6 +64,7 @@ Mobile three-screen host with Clerk sign-in and ConvexProviderWithClerk. Apps/me
 - receive identity from the Builder
 - request supported blockchain actions through the Builder
 - stay isolated from Builder internals
+- Cursor must preserve `src/solbuilder/**`
 
 Future generated apps will use an API similar to:
 
@@ -76,7 +89,7 @@ Do not implement that API until the relevant phase is requested.
 - Do not redesign the theme.
 - Avoid unnecessary custom CSS.
 - Mobile-first single layout; desktop uses a centered max-width container.
-- Do not introduce a backend until the persistence phase.
 - Do not implement fake blockchain logic.
+- Do not fake successful provisioning when credentials are missing.
 - Every phase must end with a working build and a clean commit.
 - Stop after completing the requested phase.
