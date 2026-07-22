@@ -202,7 +202,9 @@ export const generateAppWorkflow = workflow.define({
         {
           appId: args.appId,
           jobId: args.jobId,
-          sinceMs: Date.now() - 5 * 60_000,
+          // Only match deployments created after Cursor started, so we never
+          // pick up the stale deployment from the initial starter push.
+          sinceMs: started.startedAtMs,
         }
       )
 

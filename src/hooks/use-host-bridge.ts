@@ -143,7 +143,10 @@ export function useHostBridge({
     (payload: SolBuilderSolTransferResultPayload) => {
       postToIframe({
         type: "SOLBUILDER_SOL_TRANSFER_RESULT",
-        payload,
+        // Send the detail under both `error` and `message` so both the
+        // bundled demo app (reads `error`) and the starter runtime
+        // (reads `message`) receive it.
+        payload: { ...payload, message: payload.message ?? payload.error },
       })
     },
     [postToIframe]

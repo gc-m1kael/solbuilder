@@ -1,5 +1,5 @@
 import { v } from "convex/values"
-import { createThread, saveMessage, listUIMessages } from "@convex-dev/agent"
+import { createThread, saveMessage, listMessages } from "@convex-dev/agent"
 import { paginationOptsValidator } from "convex/server"
 import { components, internal } from "./_generated/api"
 import { mutation, query, internalMutation } from "./_generated/server"
@@ -53,10 +53,56 @@ export const listAppMessages = query({
       }
     }
 
-    return await listUIMessages(ctx, components.agent, {
+    const result = await listMessages(ctx, components.agent, {
       threadId: app.threadId,
       paginationOpts: args.paginationOpts,
+      excludeToolMessages: true,
     })
+
+    return {
+      ...result,
+      page: result.page.map((message) => ({
+        id: message._id,
+        role: (message.message?.role === "user" ? "user" : "assistant") as
+          | "user"
+          | "assistant",
+        text: message.text ?? "",
+        userId: message.userId ?? null,
+        createdAt: message._creationTime,
+      })),
+    }
+  },
+})
+
+export const sendChatMessage = mutation({
+  args: {
+    appId: v.id("apps"),
+    prompt: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args): Promise<null> => {
+    const { identity } = await requireAppMember(ctx, args.appId)
+    const prompt = args.prompt.trim()
+    if (!prompt) {
+      throw new Error("Message is required")
+    }
+
+    const threadId: string = await ctx.runMutation(
+      internal.threads.ensureThreadForApp,
+      { appId: args.appId }
+    )
+
+    await ctx.runMutation(internal.threads.saveUserMessage, {
+      threadId,
+      userId: identity.subject,
+      prompt,
+    })
+
+    await ctx.db.patch(args.appId, {
+      updatedAt: Date.now(),
+    })
+
+    return null
   },
 })
 
@@ -90,7 +136,10 @@ export const saveAssistantProgress = internalMutation({
     await saveMessage(ctx, components.agent, {
       threadId: args.threadId,
       agentName: args.agentName ?? "SolBuilder",
-      prompt: args.text,
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: args.text }],
+      },
     })
     return null
   },
@@ -127,7 +176,10 @@ export const writeProgressForStep = internalMutation({
     await saveMessage(ctx, components.agent, {
       threadId: app.threadId,
       agentName: "SolBuilder",
-      prompt: text,
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text }],
+      },
     })
 
     await ctx.db.patch(args.jobId, {
@@ -156,7 +208,10 @@ export const writeFinalMessage = internalMutation({
     await saveMessage(ctx, components.agent, {
       threadId: app.threadId,
       agentName: "SolBuilder",
-      prompt: args.text,
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: args.text }],
+      },
     })
 
     await ctx.db.patch(args.jobId, {

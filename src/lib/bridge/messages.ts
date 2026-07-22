@@ -46,6 +46,8 @@ export type SolBuilderSolTransferResultPayload = {
   status: SolBuilderSolTransferResultStatus
   signature?: string
   error?: string
+  /** Same detail as `error`; kept for starter-app bridge compatibility. */
+  message?: string
 }
 
 export type SolBuilderSolTransferResultMessage = {

@@ -203,6 +203,7 @@ export const startCursorAgent = internalAction({
     agentId: v.string(),
     status: v.string(),
     branchName: v.optional(v.string()),
+    startedAtMs: v.number(),
   }),
   handler: async (ctx, args) => {
     const app = await ctx.runQuery(internal.generationJobs.getApp, {
@@ -241,6 +242,9 @@ export const startCursorAgent = internalAction({
       agentId: agent.id,
       status: agent.status,
       branchName: agent.target?.branchName,
+      // Recorded so the deploy wait only matches deployments created after
+      // Cursor started (never the stale starter-push deployment).
+      startedAtMs: Date.now(),
     }
   },
 })

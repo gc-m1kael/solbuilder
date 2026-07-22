@@ -17,13 +17,15 @@ import {
   useHostBridge,
   type HostTransferUiStatus,
 } from "@/hooks/use-host-bridge"
-import type { MockApp, MockMember } from "@/data/mock"
+import type { SolBuilderBridgeMember } from "@/lib/bridge/messages"
 import { getPreviewUrl } from "@/lib/preview-url"
 import { cn } from "@/lib/utils"
 
 type GeneratedAppScreenProps = {
-  app: MockApp
-  members: MockMember[]
+  appId: string
+  appName: string
+  deploymentUrl: string | null
+  members: SolBuilderBridgeMember[]
   onBack: () => void
 }
 
@@ -106,7 +108,9 @@ function TransferStatusBadge({ status }: { status: HostTransferUiStatus }) {
 }
 
 export function GeneratedAppScreen({
-  app,
+  appId,
+  appName,
+  deploymentUrl,
   members,
   onBack,
 }: GeneratedAppScreenProps) {
@@ -114,7 +118,7 @@ export function GeneratedAppScreen({
   const { publicKey } = useWallet()
   const [reloadKey, setReloadKey] = React.useState(0)
   const iframeRef = React.useRef<HTMLIFrameElement>(null)
-  const previewUrl = getPreviewUrl()
+  const previewUrl = deploymentUrl?.trim() || getPreviewUrl()
 
   const bridgeUser = React.useMemo(() => {
     if (!user) {
@@ -135,7 +139,7 @@ export function GeneratedAppScreen({
 
   const { status: bridgeStatus, transferStatus } = useHostBridge({
     iframeRef,
-    appId: app.id,
+    appId,
     user: bridgeUser,
     walletAddress,
     members,
@@ -157,7 +161,7 @@ export function GeneratedAppScreen({
         </Button>
 
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <div className="truncate text-[14px] font-medium">{app.name}</div>
+          <div className="truncate text-[14px] font-medium">{appName}</div>
           <BridgeStatusBadge status={bridgeStatus} />
           <TransferStatusBadge status={transferStatus} />
         </div>
@@ -202,8 +206,8 @@ export function GeneratedAppScreen({
       <div className="min-h-0 flex-1 bg-muted/20">
         <iframe
           ref={iframeRef}
-          key={`${app.id}-${previewUrl}-${reloadKey}`}
-          title={`${app.name}`}
+          key={`${appId}-${previewUrl}-${reloadKey}`}
+          title={appName}
           src={previewUrl}
           className="size-full border-0 bg-background"
         />

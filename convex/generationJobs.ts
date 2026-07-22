@@ -2,7 +2,7 @@ import { v } from "convex/values"
 import { vWorkflowId } from "@convex-dev/workflow"
 import { vResultValidator } from "@convex-dev/workpool"
 import { internalMutation, internalQuery } from "./_generated/server"
-import type { Id } from "./_generated/dataModel"
+import type { Doc, Id } from "./_generated/dataModel"
 import {
   generationStatusValidator,
   isTerminalStatus,
@@ -99,29 +99,46 @@ export const setStep = internalMutation({
     const now = Date.now()
     const terminal = isTerminalStatus(args.status as GenerationStatus)
 
-    await ctx.db.patch(args.jobId, {
+    // Only patch fields that are explicitly provided so step updates never
+    // wipe values recorded by earlier steps (e.g. cursorAgentId).
+    const jobPatch: Partial<Doc<"generationJobs">> = {
       status: args.status,
       currentStep: args.currentStep,
-      error: args.error,
-      lastProgressMessage: args.lastProgressMessage ?? job.lastProgressMessage,
-      cursorAgentId: args.cursorAgentId ?? job.cursorAgentId,
-      githubRepoUrl: args.githubRepoUrl ?? job.githubRepoUrl,
-      vercelProjectId: args.vercelProjectId ?? job.vercelProjectId,
-      vercelDeploymentId: args.vercelDeploymentId ?? job.vercelDeploymentId,
-      generatedConvexProjectId:
-        args.generatedConvexProjectId ?? job.generatedConvexProjectId,
       updatedAt: now,
-      finishedAt: terminal ? now : job.finishedAt,
-    })
+    }
+    if (args.error !== undefined) jobPatch.error = args.error
+    if (args.lastProgressMessage !== undefined) {
+      jobPatch.lastProgressMessage = args.lastProgressMessage
+    }
+    if (args.cursorAgentId !== undefined) {
+      jobPatch.cursorAgentId = args.cursorAgentId
+    }
+    if (args.githubRepoUrl !== undefined) {
+      jobPatch.githubRepoUrl = args.githubRepoUrl
+    }
+    if (args.vercelProjectId !== undefined) {
+      jobPatch.vercelProjectId = args.vercelProjectId
+    }
+    if (args.vercelDeploymentId !== undefined) {
+      jobPatch.vercelDeploymentId = args.vercelDeploymentId
+    }
+    if (args.generatedConvexProjectId !== undefined) {
+      jobPatch.generatedConvexProjectId = args.generatedConvexProjectId
+    }
+    if (terminal) jobPatch.finishedAt = now
+    await ctx.db.patch(args.jobId, jobPatch)
 
-    await ctx.db.patch(job.appId, {
+    const appPatch: Partial<Doc<"apps">> = {
       status: args.status,
       updatedAt: now,
-      lastError: args.error,
-      cursorAgentId: args.cursorAgentId ?? undefined,
       activeJobId: terminal ? undefined : job._id,
       activeWorkflowId: terminal ? undefined : job.workflowId,
-    })
+    }
+    if (args.error !== undefined) appPatch.lastError = args.error
+    if (args.cursorAgentId !== undefined) {
+      appPatch.cursorAgentId = args.cursorAgentId
+    }
+    await ctx.db.patch(job.appId, appPatch)
   },
 })
 

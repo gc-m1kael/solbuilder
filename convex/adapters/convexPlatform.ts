@@ -91,7 +91,7 @@ export async function ensureProdProject(args: {
     try {
       const response = await managementRequest<{
         projectId: number
-        projectSlug: string
+        projectSlug?: string
         deploymentName: string
         deploymentUrl: string
       }>("POST", `/teams/${teamId}/create_project`, {
@@ -102,7 +102,8 @@ export async function ensureProdProject(args: {
       const deployKey = await createDeployKey(response.deploymentName)
       return {
         projectId: String(response.projectId),
-        projectSlug: response.projectSlug,
+        // The management API does not always echo a slug back.
+        projectSlug: response.projectSlug ?? projectName,
         deploymentName: response.deploymentName,
         deploymentUrl: response.deploymentUrl,
         deployKey,

@@ -1,7 +1,7 @@
 import * as React from "react"
 import { SignIn, UserButton, useUser } from "@clerk/react"
 import { Authenticated, AuthLoading, Unauthenticated } from "convex/react"
-import { useQuery } from "convex/react"
+import { useMutation, useQuery } from "convex/react"
 
 import { AppsListScreen } from "@/components/screens/apps-list"
 import { GeneratedAppScreen } from "@/components/screens/generated-app"
@@ -9,108 +9,143 @@ import { GroupChatScreen } from "@/components/screens/group-chat"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { WalletButton } from "@/components/wallet/wallet-button"
 import { api } from "../convex/_generated/api"
+import type { Id } from "../convex/_generated/dataModel"
 import {
-  mockApps,
-  mockMembersByAppId,
-  mockMessagesByAppId,
-  type MockMessage,
-} from "@/data/mock"
+  cleanErrorMessage,
+  initialsForName,
+  normalizeMessages,
+} from "@/lib/chat"
 
 type Screen = "apps" | "chat" | "generated"
+
+const MESSAGE_PAGE = { numItems: 200, cursor: null }
 
 function AuthenticatedApp() {
   const { user } = useUser()
   const convexUser = useQuery(api.auth.currentUser)
   const [screen, setScreen] = React.useState<Screen>("apps")
-  const [selectedAppId, setSelectedAppId] = React.useState<string | null>(null)
-  const [messagesByAppId, setMessagesByAppId] =
-    React.useState<Record<string, MockMessage[]>>(mockMessagesByAppId)
+  const [selectedAppId, setSelectedAppId] = React.useState<Id<"apps"> | null>(
+    null
+  )
+  const [sendError, setSendError] = React.useState<string | null>(null)
 
-  const selectedApp = mockApps.find((app) => app.id === selectedAppId) ?? null
-  const members = selectedApp
-    ? (mockMembersByAppId[selectedApp.id] ?? [])
-    : []
-  const messages = selectedApp
-    ? (messagesByAppId[selectedApp.id] ?? [])
-    : []
+  const apps = useQuery(api.apps.listApps)
+  const selectedApp = useQuery(
+    api.apps.getApp,
+    selectedAppId ? { appId: selectedAppId } : "skip"
+  )
+  const rawMessages = useQuery(
+    api.threads.listAppMessages,
+    selectedAppId
+      ? { appId: selectedAppId, paginationOpts: MESSAGE_PAGE }
+      : "skip"
+  )
+  const generation = useQuery(
+    api.generation.getGenerationStatus,
+    selectedAppId ? { appId: selectedAppId } : "skip"
+  )
 
+  const createApp = useMutation(api.apps.createApp)
+  const sendAppMessage = useMutation(api.generation.sendAppMessage)
+  const sendChatMessage = useMutation(api.threads.sendChatMessage)
+  const retryGeneration = useMutation(api.generation.retryGeneration)
+
+  const messages = React.useMemo(
+    () => (rawMessages === undefined ? undefined : normalizeMessages(rawMessages)),
+    [rawMessages]
+  )
+
+  const currentUserId = convexUser?.subject ?? user?.id ?? null
   const displayName =
     user?.fullName ??
     user?.primaryEmailAddress?.emailAddress ??
     convexUser?.name ??
     "You"
-  const initials = displayName
-    .split(" ")
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("") || "U"
+  const members = React.useMemo(
+    () => [{ name: displayName, initials: initialsForName(displayName) }],
+    [displayName]
+  )
 
-  function handleOpenApp(appId: string) {
+  function handleOpenApp(appId: Id<"apps">) {
     setSelectedAppId(appId)
+    setSendError(null)
     setScreen("chat")
+  }
+
+  async function handleCreateApp(name: string) {
+    const app = await createApp({ name })
+    handleOpenApp(app._id)
   }
 
   function handleBackToApps() {
     setScreen("apps")
     setSelectedAppId(null)
+    setSendError(null)
   }
 
-  function handleBackToChat() {
-    setScreen("chat")
-  }
-
-  function handleOpenGeneratedApp() {
-    setScreen("generated")
-  }
-
-  function handleSendMessage(content: string) {
-    if (!selectedApp) {
+  async function handleSendMessage(content: string) {
+    if (!selectedAppId) {
       return
     }
-
-    const nextMessage: MockMessage = {
-      id: `local-${Date.now()}`,
-      role: "user",
-      author: displayName,
-      initials,
-      content,
-      createdAt: "Just now",
+    setSendError(null)
+    try {
+      if (/@cursor/i.test(content)) {
+        await sendAppMessage({ appId: selectedAppId, prompt: content })
+      } else {
+        await sendChatMessage({ appId: selectedAppId, prompt: content })
+      }
+    } catch (error) {
+      setSendError(cleanErrorMessage(error))
     }
+  }
 
-    setMessagesByAppId((current) => ({
-      ...current,
-      [selectedApp.id]: [...(current[selectedApp.id] ?? []), nextMessage],
-    }))
+  async function handleRetryGeneration() {
+    if (!selectedAppId) {
+      return
+    }
+    setSendError(null)
+    try {
+      await retryGeneration({ appId: selectedAppId })
+    } catch (error) {
+      setSendError(cleanErrorMessage(error))
+    }
   }
 
   return (
     <>
       {screen === "apps" ? (
         <AppsListScreen
-          apps={mockApps}
+          apps={apps}
           onOpenApp={handleOpenApp}
+          onCreateApp={handleCreateApp}
           walletSlot={<WalletButton />}
           userSlot={<UserButton />}
         />
       ) : null}
 
-      {screen === "chat" && selectedApp ? (
+      {screen === "chat" && selectedAppId ? (
         <GroupChatScreen
-          app={selectedApp}
+          appName={selectedApp?.name ?? "…"}
           members={members}
           messages={messages}
+          currentUserId={currentUserId}
+          generation={generation ?? null}
+          sendError={sendError}
+          onDismissError={() => setSendError(null)}
+          onRetry={() => void handleRetryGeneration()}
           onBack={handleBackToApps}
-          onOpenGeneratedApp={handleOpenGeneratedApp}
-          onSendMessage={handleSendMessage}
+          onOpenGeneratedApp={() => setScreen("generated")}
+          onSendMessage={(content) => void handleSendMessage(content)}
         />
       ) : null}
 
-      {screen === "generated" && selectedApp ? (
+      {screen === "generated" && selectedAppId ? (
         <GeneratedAppScreen
-          app={selectedApp}
+          appId={selectedAppId}
+          appName={selectedApp?.name ?? "App"}
+          deploymentUrl={selectedApp?.vercelDeploymentUrl ?? null}
           members={members}
-          onBack={handleBackToChat}
+          onBack={() => setScreen("chat")}
         />
       ) : null}
     </>
