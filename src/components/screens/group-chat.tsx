@@ -2,9 +2,11 @@ import * as React from "react"
 import {
   RiArrowLeftLine,
   RiArrowUpLine,
+  RiCheckLine,
   RiCloseLine,
   RiLoader4Line,
   RiPlayFill,
+  RiUserAddLine,
 } from "@remixicon/react"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -41,6 +43,7 @@ type GroupChatScreenProps = {
   onBack: () => void
   onOpenGeneratedApp: () => void
   onSendMessage: (content: string) => void
+  onCreateInviteLink: () => Promise<string>
 }
 
 function GenerationStatusCard({
@@ -109,9 +112,34 @@ export function GroupChatScreen({
   onBack,
   onOpenGeneratedApp,
   onSendMessage,
+  onCreateInviteLink,
 }: GroupChatScreenProps) {
   const [draft, setDraft] = React.useState("")
+  const [inviteCopied, setInviteCopied] = React.useState(false)
   const bottomRef = React.useRef<HTMLDivElement>(null)
+  const inviteResetRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  React.useEffect(() => {
+    return () => {
+      if (inviteResetRef.current) {
+        clearTimeout(inviteResetRef.current)
+      }
+    }
+  }, [])
+
+  async function handleInvite() {
+    try {
+      const link = await onCreateInviteLink()
+      await navigator.clipboard.writeText(link)
+      setInviteCopied(true)
+      if (inviteResetRef.current) {
+        clearTimeout(inviteResetRef.current)
+      }
+      inviteResetRef.current = setTimeout(() => setInviteCopied(false), 2000)
+    } catch {
+      // Clipboard or network failure — no feedback, keep it minimal.
+    }
+  }
 
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
@@ -164,6 +192,26 @@ export function GroupChatScreen({
             ))}
           </div>
         </div>
+
+        {inviteCopied ? (
+          <span className="text-[11px] text-muted-foreground">
+            Invite link copied
+          </span>
+        ) : null}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          aria-label="Copy invite link"
+          title="Copy invite link"
+          onClick={() => void handleInvite()}
+          className="rounded-md"
+        >
+          {inviteCopied ? (
+            <RiCheckLine className="size-4" />
+          ) : (
+            <RiUserAddLine className="size-4" />
+          )}
+        </Button>
 
         <Button
           variant="outline"

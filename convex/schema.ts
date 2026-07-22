@@ -23,18 +23,21 @@ export default defineSchema({
     activeWorkflowId: v.optional(v.string()),
     activeJobId: v.optional(v.id("generationJobs")),
     lastError: v.optional(v.string()),
+    inviteCode: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_owner", ["ownerId"])
     .index("by_slug", ["slug"])
     .index("by_thread", ["threadId"])
-    .index("by_updated", ["updatedAt"]),
+    .index("by_updated", ["updatedAt"])
+    .index("by_invite_code", ["inviteCode"]),
 
   appMembers: defineTable({
     appId: v.id("apps"),
     userId: v.string(),
     role: v.union(v.literal("owner"), v.literal("member")),
+    name: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index("by_app", ["appId"])

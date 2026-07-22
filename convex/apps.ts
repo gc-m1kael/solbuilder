@@ -1,6 +1,6 @@
 import { v } from "convex/values"
 import { mutation, query } from "./_generated/server"
-import { requireAppMember, requireIdentity } from "./lib/auth"
+import { getAppMembership, requireAppMember, requireIdentity } from "./lib/auth"
 import { generationStatusValidator } from "./lib/status"
 import { randomSuffix, slugifyName, withSuffix } from "./lib/slugify"
 
@@ -26,9 +26,27 @@ const appReturnValidator = v.object({
   activeWorkflowId: v.optional(v.string()),
   activeJobId: v.optional(v.id("generationJobs")),
   lastError: v.optional(v.string()),
+  inviteCode: v.optional(v.string()),
   createdAt: v.number(),
   updatedAt: v.number(),
 })
+
+function memberNameFromIdentity(identity: {
+  name: string | null
+  email: string | null
+  subject: string
+}): string {
+  return identity.name ?? identity.email ?? identity.subject.slice(0, 8)
+}
+
+function generateInviteCode(): string {
+  const alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
+  let code = ""
+  for (let i = 0; i < 10; i++) {
+    code += alphabet[Math.floor(Math.random() * alphabet.length)]
+  }
+  return code
+}
 
 export const createApp = mutation({
   args: {
@@ -69,6 +87,7 @@ export const createApp = mutation({
       appId,
       userId: identity.subject,
       role: "owner",
+      name: memberNameFromIdentity(identity),
       createdAt: now,
     })
 
@@ -109,5 +128,71 @@ export const getApp = query({
   handler: async (ctx, args) => {
     const { app } = await requireAppMember(ctx, args.appId)
     return app
+  },
+})
+
+export const getOrCreateInviteCode = mutation({
+  args: { appId: v.id("apps") },
+  returns: v.string(),
+  handler: async (ctx, args) => {
+    const { app } = await requireAppMember(ctx, args.appId)
+    if (app.inviteCode) {
+      return app.inviteCode
+    }
+    const code = generateInviteCode()
+    await ctx.db.patch(args.appId, { inviteCode: code })
+    return code
+  },
+})
+
+export const joinAppByInviteCode = mutation({
+  args: { code: v.string() },
+  returns: v.union(v.null(), v.object({ appId: v.id("apps"), name: v.string() })),
+  handler: async (ctx, args) => {
+    const identity = await requireIdentity(ctx)
+    const code = args.code.trim()
+    if (!code) {
+      return null
+    }
+
+    const app = await ctx.db
+      .query("apps")
+      .withIndex("by_invite_code", (q) => q.eq("inviteCode", code))
+      .unique()
+    if (!app) {
+      return null
+    }
+
+    const existing = await getAppMembership(ctx, app._id, identity.subject)
+    if (!existing) {
+      await ctx.db.insert("appMembers", {
+        appId: app._id,
+        userId: identity.subject,
+        role: "member",
+        name: memberNameFromIdentity(identity),
+        createdAt: Date.now(),
+      })
+    }
+
+    return { appId: app._id, name: app.name }
+  },
+})
+
+export const listMembers = query({
+  args: { appId: v.id("apps") },
+  returns: v.array(
+    v.object({ userId: v.string(), name: v.string(), role: v.string() })
+  ),
+  handler: async (ctx, args) => {
+    await requireAppMember(ctx, args.appId)
+    const rows = await ctx.db
+      .query("appMembers")
+      .withIndex("by_app", (q) => q.eq("appId", args.appId))
+      .collect()
+    return rows.map((row) => ({
+      userId: row.userId,
+      name: row.name ?? "Member",
+      role: row.role,
+    }))
   },
 })

@@ -45,10 +45,17 @@ function AuthenticatedApp() {
     selectedAppId ? { appId: selectedAppId } : "skip"
   )
 
+  const memberRows = useQuery(
+    api.apps.listMembers,
+    selectedAppId ? { appId: selectedAppId } : "skip"
+  )
+
   const createApp = useMutation(api.apps.createApp)
   const sendAppMessage = useMutation(api.generation.sendAppMessage)
   const sendChatMessage = useMutation(api.threads.sendChatMessage)
   const retryGeneration = useMutation(api.generation.retryGeneration)
+  const getOrCreateInviteCode = useMutation(api.apps.getOrCreateInviteCode)
+  const joinAppByInviteCode = useMutation(api.apps.joinAppByInviteCode)
 
   const messages = React.useMemo(
     () => (rawMessages === undefined ? undefined : normalizeMessages(rawMessages)),
@@ -61,15 +68,57 @@ function AuthenticatedApp() {
     user?.primaryEmailAddress?.emailAddress ??
     convexUser?.name ??
     "You"
-  const members = React.useMemo(
-    () => [{ name: displayName, initials: initialsForName(displayName) }],
-    [displayName]
-  )
+  const members = React.useMemo(() => {
+    if (!memberRows || memberRows.length === 0) {
+      return [{ name: displayName, initials: initialsForName(displayName) }]
+    }
+    return memberRows.map((member) => ({
+      name: member.name,
+      initials: initialsForName(member.name),
+    }))
+  }, [memberRows, displayName])
 
   function handleOpenApp(appId: Id<"apps">) {
     setSelectedAppId(appId)
     setSendError(null)
     setScreen("chat")
+  }
+
+  const joinHandledRef = React.useRef(false)
+  React.useEffect(() => {
+    if (joinHandledRef.current) {
+      return
+    }
+    joinHandledRef.current = true
+
+    const code = new URLSearchParams(window.location.search).get("join")
+    if (!code) {
+      return
+    }
+
+    void (async () => {
+      try {
+        const result = await joinAppByInviteCode({ code })
+        if (result) {
+          handleOpenApp(result.appId)
+        }
+      } catch {
+        // Invalid code or transient error — ignore silently.
+      } finally {
+        const url = new URL(window.location.href)
+        url.searchParams.delete("join")
+        window.history.replaceState({}, "", url)
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  async function handleCreateInviteLink(): Promise<string> {
+    if (!selectedAppId) {
+      throw new Error("No app selected")
+    }
+    const code = await getOrCreateInviteCode({ appId: selectedAppId })
+    return `${window.location.origin}/?join=${code}`
   }
 
   async function handleCreateApp(name: string) {
@@ -136,6 +185,7 @@ function AuthenticatedApp() {
           onBack={handleBackToApps}
           onOpenGeneratedApp={() => setScreen("generated")}
           onSendMessage={(content) => void handleSendMessage(content)}
+          onCreateInviteLink={handleCreateInviteLink}
         />
       ) : null}
 
