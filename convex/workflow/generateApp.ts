@@ -173,6 +173,13 @@ export const generateAppWorkflow = workflow.define({
         return { ok: false, error }
       }
 
+      // Cursor works on its own branch; merge it into the default branch so
+      // the Vercel production deployment picks up the changes.
+      await step.runAction(internal.actions.provision.mergeCursorBranch, {
+        appId: args.appId,
+        agentId: started.agentId,
+      })
+
       await step.runMutation(internal.generationJobs.setStep, {
         jobId: args.jobId,
         status: "deploying_convex",

@@ -232,6 +232,37 @@ export async function ensureRepoFromStarter(args: {
   throw lastError ?? new Error("GitHub generate failed")
 }
 
+/**
+ * Merge a work branch into the base branch. Returns false when there is
+ * nothing to merge or the branch is gone; throws on conflicts.
+ */
+export async function mergeBranch(args: {
+  fullName: string
+  base: string
+  head: string
+}): Promise<boolean> {
+  assertNotStub("GitHub")
+  const token = await getGithubToken()
+  const res = await fetch(`${GITHUB_API}/repos/${args.fullName}/merges`, {
+    method: "POST",
+    headers: githubHeaders(token),
+    body: JSON.stringify({
+      base: args.base,
+      head: args.head,
+      commit_message: `Merge ${args.head} (SolBuilder generation)`,
+    }),
+  })
+  if (res.status === 201) {
+    return true
+  }
+  if (res.status === 204 || res.status === 404) {
+    // 204: already up to date; 404: branch missing (nothing to merge).
+    return false
+  }
+  const text = await res.text().catch(() => "")
+  throw new Error(`GitHub merge ${args.head} -> ${args.base} failed (${res.status}): ${text}`)
+}
+
 export async function getHeadSha(args: {
   fullName: string
   branch: string

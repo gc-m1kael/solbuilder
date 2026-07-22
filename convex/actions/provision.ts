@@ -312,6 +312,40 @@ export const pollCursorAgent = internalAction({
   },
 })
 
+export const mergeCursorBranch = internalAction({
+  args: {
+    appId: v.id("apps"),
+    agentId: v.string(),
+  },
+  returns: v.object({ merged: v.boolean(), branchName: v.optional(v.string()) }),
+  handler: async (
+    ctx,
+    args
+  ): Promise<{ merged: boolean; branchName?: string }> => {
+    const app = await ctx.runQuery(internal.generationJobs.getApp, {
+      appId: args.appId,
+    })
+    if (!app?.githubRepoFullName) {
+      throw new Error("GitHub repository required before merging Cursor branch")
+    }
+
+    const status = await cursor.getAgentStatus(args.agentId)
+    const branchName = status.target?.branchName
+    const base = app.githubDefaultBranch ?? "main"
+    if (!branchName || branchName === base) {
+      // Cursor pushed directly to the base branch; nothing to merge.
+      return { merged: false, branchName }
+    }
+
+    const merged = await github.mergeBranch({
+      fullName: app.githubRepoFullName,
+      base,
+      head: branchName,
+    })
+    return { merged, branchName }
+  },
+})
+
 export const waitForVercelDeployment = internalAction({
   args: {
     appId: v.id("apps"),
