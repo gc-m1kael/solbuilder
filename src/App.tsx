@@ -105,7 +105,11 @@ function AuthenticatedApp() {
       ) : null}
 
       {screen === "generated" && selectedApp ? (
-        <GeneratedAppScreen app={selectedApp} onBack={handleBackToChat} />
+        <GeneratedAppScreen
+          app={selectedApp}
+          members={members}
+          onBack={handleBackToChat}
+        />
       ) : null}
     </>
   )

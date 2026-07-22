@@ -250,7 +250,61 @@
         </ul>
       </section>
 
-      <p class="demo">Demo mode · wallet not connected</p>
+      <p class="demo" id="bridge-status">Demo mode · waiting for host…</p>
     </main>
+    <script>
+      ;(function () {
+        var statusEl = document.getElementById("bridge-status")
+        var hostOrigin = document.referrer
+          ? new URL(document.referrer).origin
+          : window.location.origin
+
+        function setStatus(text) {
+          if (statusEl) {
+            statusEl.textContent = text
+          }
+        }
+
+        window.addEventListener("message", function (event) {
+          if (event.origin !== hostOrigin) {
+            return
+          }
+
+          var data = event.data
+          if (!data || data.type !== "SOLBUILDER_CONTEXT") {
+            return
+          }
+
+          var payload = data.payload || {}
+          var user = payload.user || {}
+          var wallet = payload.walletAddress
+          var members = Array.isArray(payload.members) ? payload.members : []
+          var walletLabel = wallet
+            ? wallet.slice(0, 4) + "…" + wallet.slice(-4)
+            : "wallet not connected"
+
+          setStatus(
+            "Host connected · " +
+              (user.name || "user") +
+              " · " +
+              walletLabel +
+              " · " +
+              members.length +
+              " members"
+          )
+        })
+
+        function announceReady() {
+          if (!window.parent || window.parent === window) {
+            return
+          }
+
+          window.parent.postMessage({ type: "SOLBUILDER_APP_READY" }, hostOrigin)
+        }
+
+        announceReady()
+        window.addEventListener("load", announceReady)
+      })()
+    </script>
   </body>
 </html>
